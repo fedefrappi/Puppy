@@ -56,8 +56,8 @@ extension FileLoggerable {
     public func flush(_ url: URL) {
         queue.sync {
             let handle = try? FileHandle(forWritingTo: url)
-            try? handle?.synchronize()
-            try? handle?.close()
+            try? handle?.synchronizeCompatible()
+            try? handle?.closeCompatible()
         }
     }
 
@@ -65,8 +65,8 @@ extension FileLoggerable {
     public func flush(_ url: URL, completion: @escaping @Sendable () -> Void) {
         queue.async {
             let handle = try? FileHandle(forWritingTo: url)
-            try? handle?.synchronize()
-            try? handle?.close()
+            try? handle?.synchronizeCompatible()
+            try? handle?.closeCompatible()
             completion()
         }
     }
@@ -77,8 +77,8 @@ extension FileLoggerable {
         await withCheckedContinuation { (continuation: CheckedContinuation<Void, Never>) in
             queue.async {
                 let handle = try? FileHandle(forWritingTo: url)
-                try? handle?.synchronize()
-                try? handle?.close()
+                try? handle?.synchronizeCompatible()
+                try? handle?.closeCompatible()
                 continuation.resume()
             }
         }
@@ -108,8 +108,8 @@ extension FileLoggerable {
         var handle: FileHandle!
         do {
             defer {
-                try? handle?.synchronize()
-                try? handle?.close()
+                try? handle?.synchronizeCompatible()
+                try? handle?.closeCompatible()
             }
             handle = try FileHandle(forWritingTo: fileURL)
         } catch {
@@ -137,9 +137,9 @@ extension FileLoggerable {
         do {
             defer {
                 if flushMode == .always {
-                    try? handle?.synchronize()
+                    try? handle?.synchronizeCompatible()
                 }
-                try? handle?.close()
+                try? handle?.closeCompatible()
             }
             handle = try FileHandle(forWritingTo: fileURL)
             _ = try handle?.seekToEndCompatible()
@@ -168,6 +168,22 @@ extension FileHandle {
             try write(contentsOf: data)
         } else {
             write(data)
+        }
+    }
+    
+    func synchronizeCompatible() throws {
+        if #available(iOS 13.0, *) {
+            return try synchronize()
+        } else {
+            return synchronizeFile()
+        }
+    }
+    
+    func closeCompatible() throws {
+        if #available(iOS 13.0, *) {
+            return try close()
+        } else {
+            return closeFile()
         }
     }
 }
